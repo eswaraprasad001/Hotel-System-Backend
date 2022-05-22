@@ -23,7 +23,8 @@
     "mongoose": "^5.0.7",
     "passport": "^0.4.0",
     "passport-jwt": "^3.0.1",
-    "rand-token": "^1.0.1"
+    "rand-token": "^1.0.1",
+    "stripe": "^9.2.0"
   },
   "bugs": {
     "url": "https://github.com/eswaraprasad001/Hotel-Booking-System/issues"

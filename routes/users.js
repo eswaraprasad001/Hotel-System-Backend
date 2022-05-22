@@ -5,7 +5,13 @@ const bodyParser = require('body-parser');
 const router = express.Router();
 const randtoken = require('rand-token');
 const app = express();
-app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }))
+app.use(bodyParser.json())
+const stripe = require("stripe")("sk_test_51L1OJWSGdpiEKZzuccFqGpQbdKN09nLUxb6ff2Y9jOQGCgs3aQAaFZjjRE6uokSRdWnMIFYql0X0xTbCgw4vMWYz00R1wAyiKK");
+const cors = require('cors')
+
+app.use(cors())
+
 var User = require("../models/user");
 var Hotel = require("../models/hotel");
 var Booking = require("../models/booking");
@@ -339,4 +345,42 @@ router.delete("/api/bookings/:id", passport.authenticate('jwt', {session: false}
 		}
 	});
 });
+
+router.post('/checkout', (req, res) => {
+    try {
+        console.log(req.body);
+        token = req.body.token
+        amount=req.body.amount
+        email=req.body.email
+        console.log(amount)
+      const customer = stripe.customers
+        .create({
+          email: email,
+          source: token.id
+        })
+        .then((customer) => {
+          console.log(customer);
+          return stripe.paymentIntents.create({
+            amount: amount*100,
+            description: "Test  using express and Node",
+            currency: "INR",
+            customer: customer.id,
+          });
+        })
+        .then((paymentIntents) => {
+          console.log(paymentIntents);
+            res.json({
+              data:"success"
+          })
+        })
+        .catch((err) => {
+            res.json({
+              data: "failure",
+            });
+        });
+      return true;
+    } catch (error) {
+      return false;
+    }
+})
 module.exports = router;
