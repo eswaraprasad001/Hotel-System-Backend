@@ -1,4 +1,6 @@
 const express = require('express');
+const authconfig = require("../config/auth.config");
+const nodemailer = require("../config/nodemailer.config");
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
 const bodyParser = require('body-parser');
@@ -33,12 +35,14 @@ router.get('/hello',(req,res)=>{
 
 // Register
 router.post('/register', (req, res) => {
+	const token = jwt.sign({ email: req.body.email }, authconfig.secret);
+
     let newUser = new User({
         firstname:req.body.firstname,
         lastname: req.body.lastname,
         email:req.body.email ,
-        password: req.body.password
-
+        password: req.body.password,
+		confirmationCode: token
     });
 
     User.addUser(newUser, (err, user) => {
@@ -46,9 +50,14 @@ router.post('/register', (req, res) => {
             res.json({success: false, msg: 'Failed to register user'});
             console.log(err);
         } else {
-            res.json({success: true, msg: 'User registered'});
+            res.json({success: true, msg: 'User registered, Please check your Mail'});
         }
     });
+	nodemailer.sendConfirmationEmail(
+		newUser.firstname,
+		newUser.email,
+		newUser.confirmationCode
+	  );
 });
 
 // Authenticate
@@ -62,6 +71,11 @@ router.post('/authenticate', (req, res) => {
         if (!user) {
             return res.json({success: false, msg: 'User not found'});
         }
+		// if (user.status != "Active") {
+		// 	return res.status(401).send({
+		// 	  message: "Pending Account. Please Verify Your Email!",
+		// 	});
+		// }
         // User found, check password
         User.comparePassword(password, user.password, (err, isMatch) => {
             if (err) throw err;
@@ -82,7 +96,8 @@ router.post('/authenticate', (req, res) => {
                         email: user.email,
                         firstname: user.firstName,
                         email: user.email,
-                        isAdmin:user.isAdmin
+                        isAdmin:user.isAdmin,
+						status:user.status
                     }
                 });
             } else {
@@ -383,4 +398,26 @@ router.post('/checkout', (req, res) => {
       return false;
     }
 })
+
+router.get("/confirm/:confirmationCode", (req, res, next) => {
+	User.findOne({
+	  confirmationCode: req.params.confirmationCode,
+	})
+	  .then((user) => {
+		console.log(user);
+		if (!user) {
+		  return res.status(404).send({ message: "User Not found." });
+		}
+		user.status = "Active";
+		console.log("Updated");
+		res.sendFile(__dirname + "/template.html")
+		user.save((err) => {
+		  if (err) {
+			res.send({ message: err });
+			return;
+		  }
+		});
+	  })
+	  .catch((e) => console.log("error", e));
+  });
 module.exports = router;

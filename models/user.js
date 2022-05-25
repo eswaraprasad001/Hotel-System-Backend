@@ -8,7 +8,9 @@ const UserSchema = mongoose.Schema({
 	lastname: { required: true, type: String },
 	email: { required: true, unique: true, type: String },
 	password: { required: true, type: String },
-	isAdmin: { default: false, type: Boolean }
+	isAdmin: { default: false, type: Boolean },
+    status: {type: String, enum: ['Pending', 'Active'],default: 'Pending'},
+    confirmationCode: { type: String, unique: true }
 });
 
 const User = module.exports = mongoose.model('User', UserSchema);
